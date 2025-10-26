@@ -35,16 +35,15 @@ export async function parseMdxToJson(filePath) {
     recmaPlugins: [recmaCodeHike],
   });
 
-  const description = reactToText(
+  const content = reactToText(
     React.createElement(Content, {
       components: components,
     })
   );
 
   return {
-    name: frontmatter.title,
-    description,
-    paramsData: data.params,
-    resultData: data.result,
+    frontmatter,
+    content,
+    data,
   };
 }

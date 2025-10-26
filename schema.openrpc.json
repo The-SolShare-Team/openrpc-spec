@@ -1,0 +1,105 @@
+{
+  "openrpc": "1.0.0",
+  "info": {
+    "title": "Solana RPC",
+    "version": "0.0.0"
+  },
+  "servers": [
+    {
+      "name": "Mainnet",
+      "url": "https://api.mainnet-beta.solana.com"
+    },
+    {
+      "name": "Testnet",
+      "url": "https://api.testnet.solana.com"
+    },
+    {
+      "name": "Devnet",
+      "url": "https://api.devnet.solana.com"
+    }
+  ],
+  "methods": [
+    {
+      "name": "getBlock",
+      "description": "Returns identity and transaction information about a confirmed block in the ledger",
+      "params": [
+        {
+          "name": "slot number",
+          "description": "Slot number.",
+          "schema": {
+            "$ref": "#/components/schemas/u64"
+          },
+          "required": true
+        },
+        {
+          "name": "1",
+          "description": "Configuration object.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "commitment": {
+                "type": "string",
+                "enum": [
+                  "confirmed",
+                  "finalized"
+                ],
+                "default": "finalized",
+                "description": "The commitment describes how finalized a block is at that point in time. See [Configuring State Commitment](/docs/rpc#configuring-state-commitment).\n\n* `processed` is not supported."
+              },
+              "encoding": {
+                "type": "string",
+                "enum": [
+                  "json",
+                  "jsonParsed",
+                  "base58",
+                  "base64"
+                ],
+                "default": "json",
+                "description": "Encoding format for each returned transaction. See [Parsed Responses](/docs/rpc#parsed-responses).\n\n* `jsonParsed` attempts to use program-specific instruction parsers to return more human-readable and explicit data in the `transaction.message.instructions` list.\n* If `jsonParsed` is requested but a parser cannot be found, the instruction falls back to regular JSON encoding (`accounts`, `data`, and `programIdIndex` fields)."
+              },
+              "transactionDetails": {
+                "type": "string",
+                "enum": [
+                  "full",
+                  "accounts",
+                  "signatures",
+                  "none"
+                ],
+                "default": "full",
+                "description": "Level of transaction detail to return.\n\n* If `accounts` are requested, transaction details only include signatures and an annotated list of accounts in each transaction.\n* Transaction metadata is limited to only: fee, err, pre\\_balances, post\\_balances, pre\\_token\\_balances, and post\\_token\\_balances."
+              },
+              "maxSupportedTransactionVersion": {
+                "type": "number",
+                "enum": [
+                  "0"
+                ],
+                "default": "0",
+                "description": "Currently, the only valid value for this parameter is `0`. Setting it to `0` allows you to fetch all transactions, including both Versioned and legacy transactions.\n\nThis parameter determines the maximum transaction version that will be returned in the response. If you request a transaction with a higher version than this value, an error will be returned. If you omit this parameter, only legacy transactions will be returned—any versioned transaction will result in an error."
+              },
+              "rewards": {
+                "type": "boolean",
+                "description": "Whether to populate the rewards array. If parameter not provided, the default includes rewards."
+              }
+            },
+            "required": []
+          },
+          "required": false
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "If specified block is not confirmed result will be `null`. Otherwise, an object containing:"
+      }
+    }
+  ],
+  "components": {
+    "schemas": {
+      "u64": {
+        "type": "integer"
+      },
+      "i64": {
+        "type": "integer"
+      }
+    }
+  }
+}

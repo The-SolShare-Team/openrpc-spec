@@ -4,39 +4,39 @@ import { parseType } from "./parser/parseType.js";
 import { reactToText } from "./reactUtils.js";
 
 async function parseDoc(filePath) {
-  const data = await parseMdxToJson(filePath);
+  const mdx = await parseMdxToJson(filePath);
 
-  // Build params
   const params = [];
-  for (const block of data.paramsData.blocks) {
+  for (const block of mdx.data.params.blocks) {
     params.push({
       name: block.title,
       description: reactToText(block.children),
       schema: {
-        ...parseType(block.type),
-        ...parseObjectProperties(block.blocks),
+        ...parseType(block.type).obj,
+        ...parseObjectProperties(block.blocks, false),
       },
       required: block.required,
     });
   }
 
-  // Build result
+  let resultSchema;
+  if ("blocks" in mdx.data.result[0].blocks) {
+    resultSchema = parseObjectProperties(mdx.data.result[0].blocks, true);
+  } else {
+    // TODO
+    // resultSchema = parseType(mdx.data.result[0].blocks)[1]
+  }
   const result = {
     name: "result",
-    schema: {
-      $ref: "#/components/schemas/getBlockResult",
-    },
+    description: reactToText(mdx.data.result[0].children) || undefined,
+    schema: resultSchema,
   };
-  const resultProperties = parseObjectProperties(data.resultData);
 
   return {
-    method: {
-      name: data.name,
-      description: data.description,
-      params,
-      result,
-    },
-    resultSchema: resultProperties,
+    name: mdx.frontmatter.title,
+    description: mdx.content,
+    params,
+    result,
   };
 }
 
@@ -44,10 +44,35 @@ async function makeOpenRPC() {
   const getBlock = await parseDoc("getblock.mdx");
 
   const openRpc = {
-    methods: [getBlock.method],
+    openrpc: "1.0.0",
+    info: {
+      title: "Solana RPC",
+      version: "0.0.0",
+    },
+    servers: [
+      // Solana Clusters: https://solana.com/docs/references/clusters
+      {
+        name: "Mainnet",
+        url: "https://api.mainnet-beta.solana.com",
+      },
+      {
+        name: "Testnet",
+        url: "https://api.testnet.solana.com",
+      },
+      {
+        name: "Devnet",
+        url: "https://api.devnet.solana.com",
+      },
+    ],
+    methods: [getBlock],
     components: {
       schemas: {
-        getBlockResult: getBlock.resultSchema,
+        u64: {
+          type: "integer",
+        },
+        i64: {
+          type: "integer",
+        },
       },
     },
   };

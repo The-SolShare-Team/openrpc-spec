@@ -11,11 +11,13 @@ import { unified } from "unified";
  * @returns Markdown string
  */
 export function reactToText(reactNode) {
-  const out = unified()
+  const html = renderToStaticMarkup(reactNode);
+  const md = unified()
     .use(rehypeParse)
     .use(rehypeRemark)
     .use(remarkGfm)
     .use(remarkStringify)
-    .processSync(renderToStaticMarkup(reactNode));
-  return out.toString().trim();
+    .processSync(html)
+    .toString();
+  return md.trim();
 }
