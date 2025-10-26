@@ -1,7 +1,6 @@
 import { evaluate } from "@mdx-js/mdx";
 import { parseProps } from "codehike/blocks";
 import { recmaCodeHike, remarkCodeHike } from "codehike/mdx";
-import * as fs from "fs/promises";
 import React from "react";
 import * as runtime from "react/jsx-runtime";
 import remarkFrontmatter from "remark-frontmatter";
@@ -11,17 +10,16 @@ import { MethodSchema } from "../zodSchemas.js";
 
 /**
  * Parse MDX file into an intermediary JSON object
- * @param {string} filePath
+ * @param {string} mdxContent
  * @returns Intermediary JSON object
  */
-export async function parseMdxToJson(filePath) {
-  const mdxContent = await fs.readFile(filePath);
-
+export async function parseMdxToJson(mdxContent) {
   let data;
   const components = {
     APIMethod: (props) => {
       data = parseProps(props, MethodSchema);
     },
+    Callout: () => {},
   };
 
   const { default: Content, frontmatter } = await evaluate(mdxContent, {

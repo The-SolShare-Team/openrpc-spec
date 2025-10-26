@@ -1,0 +1,2549 @@
+{
+  "openrpc": "1.0.0",
+  "info": {
+    "title": "Solana RPC",
+    "version": "0.0.0"
+  },
+  "servers": [
+    {
+      "name": "Mainnet",
+      "url": "https://api.mainnet-beta.solana.com"
+    },
+    {
+      "name": "Testnet",
+      "url": "https://api.testnet.solana.com"
+    },
+    {
+      "name": "Devnet",
+      "url": "https://api.devnet.solana.com"
+    }
+  ],
+  "methods": [
+    {
+      "name": "getAccountInfo",
+      "description": "Returns all information associated with the account of provided Pubkey",
+      "params": [
+        {
+          "name": "pubkey",
+          "description": "Pubkey of account to query, as base-58 encoded string.",
+          "schema": {
+            "type": "string"
+          },
+          "required": true
+        },
+        {
+          "name": "1",
+          "description": "Configuration object.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "commitment": {
+                "type": "string",
+                "description": "The commitment describes how finalized a block is at that point in time. See [Configuring State Commitment](/docs/rpc#configuring-state-commitment)."
+              },
+              "encoding": {
+                "type": "string",
+                "enum": [
+                  "base58",
+                  "base64",
+                  "base64+zstd",
+                  "binary",
+                  "jsonParsed"
+                ],
+                "default": "binary",
+                "description": "Encoding format for Account data. See [Parsed Responses](/docs/rpc#parsed-responses).\n\n* `base58` is slow and limited to less than 129 bytes of Account data.\n* `base64` will return base64 encoded data for Account data of any size.\n* `base64+zstd` compresses the Account data using [Zstandard](https://facebook.github.io/zstd/) and base64-encodes the result.\n* `binary` (⚠️ deprecated) is similar to `base58`, except data will be a base58-encoded string and not an array that includes the encoding.\n* `jsonParsed` encoding attempts to use program-specific state parsers to return more human-readable and explicit account state data.\n* If `jsonParsed` is requested but a parser cannot be found, the field falls back to `base64` encoding, detectable when the `data` field is type `string`."
+              },
+              "dataSlice": {
+                "type": "object",
+                "description": "Request a slice of the account's data.\n\n* `length: <usize>` - number of bytes to return\n* `offset: <usize>` - byte offset from which to start reading"
+              },
+              "minContextSlot": {
+                "type": "string",
+                "description": "The minimum slot that the request can be evaluated at."
+              }
+            },
+            "required": []
+          },
+          "required": false
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "If the requested account doesn't exist result will be `null`. Otherwise, an object containing:",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "data": {
+              "$ref": "#/components/schemas/string | [string,encoding] | object",
+              "description": "Data associated with the account. Format depends on encoding parameter:\n\n* If the encoding parameter is left as the deprecated default of `binary`, this will be a string containing encoded binary data.\n* If `base58`, `base64`, or `base64+zstd` is specified, this will be an array, where the first element is the encoded data string and the second element is the encoding format.\n* If `jsonParsed` is specified, this will be JSON format `{<program>: <state>}`."
+            },
+            "executable": {
+              "type": "boolean",
+              "description": "Boolean indicating if the account contains a program (and is strictly read-only)"
+            },
+            "lamports": {
+              "$ref": "#/components/schemas/u64",
+              "description": "Number of lamports assigned to this account"
+            },
+            "owner": {
+              "type": "string",
+              "description": "base-58 encoded Pubkey of the program this account has been assigned to"
+            },
+            "rentEpoch": {
+              "$ref": "#/components/schemas/u64",
+              "description": "The epoch at which this account will next owe rent, as u64"
+            },
+            "space": {
+              "$ref": "#/components/schemas/u64",
+              "description": "The data size of the account"
+            }
+          },
+          "required": [
+            "data",
+            "executable",
+            "lamports",
+            "owner",
+            "rentEpoch",
+            "space"
+          ]
+        }
+      }
+    },
+    {
+      "name": "getBalance",
+      "description": "Returns the lamport balance of the account of provided Pubkey",
+      "params": [
+        {
+          "name": "pubkey",
+          "description": "Pubkey of account to query, as base-58 encoded string.",
+          "schema": {
+            "type": "string"
+          },
+          "required": true
+        },
+        {
+          "name": "1",
+          "description": "Configuration object.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "commitment": {
+                "type": "string",
+                "description": "The commitment describes how finalized a block is at that point in time. See [Configuring State Commitment](/docs/rpc#configuring-state-commitment)."
+              },
+              "minContextSlot": {
+                "type": "number",
+                "description": "The minimum slot that the request can be evaluated at."
+              }
+            },
+            "required": []
+          },
+          "required": false
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "RpcResponse JSON object with value field set to the balance.",
+        "schema": {
+          "$ref": "#/components/schemas/u64"
+        }
+      }
+    },
+    {
+      "name": "getBlock",
+      "description": "Returns identity and transaction information about a confirmed block in the ledger",
+      "params": [
+        {
+          "name": "slot number",
+          "description": "Slot number.",
+          "schema": {
+            "$ref": "#/components/schemas/u64"
+          },
+          "required": true
+        },
+        {
+          "name": "1",
+          "description": "Configuration object.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "commitment": {
+                "type": "string",
+                "enum": [
+                  "confirmed",
+                  "finalized"
+                ],
+                "default": "finalized",
+                "description": "The commitment describes how finalized a block is at that point in time. See [Configuring State Commitment](/docs/rpc#configuring-state-commitment).\n\n* `processed` is not supported."
+              },
+              "encoding": {
+                "type": "string",
+                "enum": [
+                  "json",
+                  "jsonParsed",
+                  "base58",
+                  "base64"
+                ],
+                "default": "json",
+                "description": "Encoding format for each returned transaction. See [Parsed Responses](/docs/rpc#parsed-responses).\n\n* `jsonParsed` attempts to use program-specific instruction parsers to return more human-readable and explicit data in the `transaction.message.instructions` list.\n* If `jsonParsed` is requested but a parser cannot be found, the instruction falls back to regular JSON encoding (`accounts`, `data`, and `programIdIndex` fields)."
+              },
+              "transactionDetails": {
+                "type": "string",
+                "enum": [
+                  "full",
+                  "accounts",
+                  "signatures",
+                  "none"
+                ],
+                "default": "full",
+                "description": "Level of transaction detail to return.\n\n* If `accounts` are requested, transaction details only include signatures and an annotated list of accounts in each transaction.\n* Transaction metadata is limited to only: fee, err, pre\\_balances, post\\_balances, pre\\_token\\_balances, and post\\_token\\_balances."
+              },
+              "maxSupportedTransactionVersion": {
+                "type": "number",
+                "enum": [
+                  "0"
+                ],
+                "default": "0",
+                "description": "Currently, the only valid value for this parameter is `0`. Setting it to `0` allows you to fetch all transactions, including both Versioned and legacy transactions.\n\nThis parameter determines the maximum transaction version that will be returned in the response. If you request a transaction with a higher version than this value, an error will be returned. If you omit this parameter, only legacy transactions will be returned—any versioned transaction will result in an error."
+              },
+              "rewards": {
+                "type": "boolean",
+                "description": "Whether to populate the rewards array. If parameter not provided, the default includes rewards."
+              }
+            },
+            "required": []
+          },
+          "required": false
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "If specified block is not confirmed result will be `null`. Otherwise, an object containing:",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "blockHeight": {
+              "$ref": "#/components/schemas/u64",
+              "description": "The number of blocks beneath this block."
+            },
+            "blockTime": {
+              "$ref": "#/components/schemas/i64",
+              "description": "Estimated production time, as Unix timestamp (seconds since the Unix epoch). `null` if not available."
+            },
+            "blockhash": {
+              "type": "string",
+              "description": "The blockhash of this block, as base-58 encoded string"
+            },
+            "parentSlot": {
+              "$ref": "#/components/schemas/u64",
+              "description": "The slot index of this block's parent"
+            },
+            "previousBlockhash": {
+              "type": "string",
+              "description": "The blockhash of this block's parent, as base-58 encoded string; if the parent block is not available due to ledger cleanup, this field will return \"11111111111111111111111111111111\""
+            },
+            "transactions": {
+              "type": "array",
+              "description": "Present if \"full\" transaction details are requested; an array of JSON objects containing:\n\n* `transaction: <object|[string,encoding]>` - [Transaction](/docs/rpc/json-structures#transactions) object, either in JSON format or encoded binary data, depending on encoding parameter.\n* `meta: <object>` - Transaction status [metadata object](/docs/rpc/json-structures#transaction-status-metadata) or `null`."
+            }
+          },
+          "required": [
+            "blockhash",
+            "parentSlot",
+            "previousBlockhash",
+            "transactions"
+          ]
+        }
+      }
+    },
+    {
+      "name": "getBlockCommitment",
+      "description": "Returns commitment for particular block",
+      "params": [
+        {
+          "name": "slot number",
+          "description": "Block number, identified by Slot.",
+          "schema": {
+            "$ref": "#/components/schemas/u64"
+          },
+          "required": true
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "The result field will be a JSON object containing:",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "commitment": {
+              "type": "array",
+              "description": "Array of u64 integers logging the amount of cluster stake in lamports that has voted on the block at each depth from 0 to `MAX_LOCKOUT_HISTORY`."
+            },
+            "totalStake": {
+              "type": "number",
+              "description": "Total active stake, in lamports, of the current epoch."
+            }
+          },
+          "required": [
+            "totalStake"
+          ]
+        }
+      }
+    },
+    {
+      "name": "getBlockHeight",
+      "description": "Returns the current block height of the node",
+      "params": [
+        {
+          "name": "0",
+          "description": "Configuration object",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "commitment": {
+                "type": "string",
+                "description": "The commitment describes how finalized a block is at that point in time. See [Configuring State Commitment](/docs/rpc#configuring-state-commitment)."
+              },
+              "minContextSlot": {
+                "type": "number",
+                "description": "The minimum slot that the request can be evaluated at."
+              }
+            },
+            "required": []
+          },
+          "required": false
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "Current block height.",
+        "schema": {
+          "$ref": "#/components/schemas/u64"
+        }
+      }
+    },
+    {
+      "name": "getBlockProduction",
+      "description": "Returns recent block production information from the current or previous epoch.",
+      "params": [
+        {
+          "name": "0",
+          "description": "Configuration object",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "commitment": {
+                "type": "string",
+                "description": "The commitment describes how finalized a block is at that point in time. See [Configuring State Commitment](/docs/rpc#configuring-state-commitment)."
+              },
+              "identity": {
+                "type": "string",
+                "description": "Only return results for this validator identity (base-58 encoded)."
+              },
+              "range": {
+                "type": "object",
+                "description": "Slot range to return block production for. If parameter not provided, defaults to current epoch.\n\n* `firstSlot: <u64>` - first slot to return block production information for (inclusive)\n* (optional) `lastSlot: <u64>` - last slot to return block production information for (inclusive). If parameter not provided, defaults to the highest slot"
+              }
+            },
+            "required": []
+          },
+          "required": false
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "The result will be an RpcResponse JSON object with value equal to:",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "byIdentity": {
+              "type": "object",
+              "description": "A dictionary of validator identities, as base-58 encoded strings. Value is a two element array containing the number of leader slots and the number of blocks produced."
+            },
+            "range": {
+              "type": "object",
+              "description": "Block production slot range\n\n* `firstSlot: <u64>` - first slot of the block production information (inclusive)\n* `lastSlot: <u64>` - last slot of block production information (inclusive)"
+            }
+          },
+          "required": [
+            "byIdentity",
+            "range"
+          ]
+        }
+      }
+    },
+    {
+      "name": "getBlocks",
+      "description": "Returns a list of confirmed blocks between two slots",
+      "params": [
+        {
+          "name": "start slot",
+          "description": "Start slot",
+          "schema": {
+            "$ref": "#/components/schemas/u64"
+          },
+          "required": true
+        },
+        {
+          "name": "end slot",
+          "description": "End slot (must be no more than 500,000 blocks higher than the `start_slot`)",
+          "schema": {
+            "$ref": "#/components/schemas/u64"
+          },
+          "required": false
+        },
+        {
+          "name": "2",
+          "description": "Configuration object",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "commitment": {
+                "type": "string",
+                "description": "The commitment describes how finalized a block is at that point in time. See [Configuring State Commitment](/docs/rpc#configuring-state-commitment).\n\n* \"processed\" is not supported"
+              }
+            },
+            "required": []
+          },
+          "required": false
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "An array of u64 integers listing confirmed blocks between `start_slot` and either `end_slot` - if provided, or latest confirmed slot, inclusive. Max range allowed is 500,000 slots.",
+        "schema": {
+          "type": "array"
+        }
+      }
+    },
+    {
+      "name": "getBlocksWithLimit",
+      "description": "Returns a list of confirmed blocks starting at the given slot",
+      "params": [
+        {
+          "name": "start slot",
+          "description": "Start slot",
+          "schema": {
+            "$ref": "#/components/schemas/u64"
+          },
+          "required": true
+        },
+        {
+          "name": "limit",
+          "description": "Limit (must be no more than 500,000 blocks higher than the `start_slot`)",
+          "schema": {
+            "$ref": "#/components/schemas/u64"
+          },
+          "required": false
+        },
+        {
+          "name": "2",
+          "description": "Configuration object",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "commitment": {
+                "type": "string",
+                "description": "The commitment describes how finalized a block is at that point in time. See [Configuring State Commitment](/docs/rpc#configuring-state-commitment).\n\n* \"processed\" is not supported"
+              }
+            },
+            "required": []
+          },
+          "required": false
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "An array of u64 integers listing confirmed blocks starting at `start_slot` for up to `limit` blocks, inclusive.",
+        "schema": {
+          "type": "array"
+        }
+      }
+    },
+    {
+      "name": "getBlockTime",
+      "description": "Returns the estimated production time of a block.",
+      "params": [
+        {
+          "name": "slot number",
+          "description": "Block number, identified by Slot",
+          "schema": {
+            "$ref": "#/components/schemas/u64"
+          },
+          "required": true
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "Estimated production time, as Unix timestamp (seconds since the Unix epoch)",
+        "schema": {
+          "$ref": "#/components/schemas/i64"
+        }
+      }
+    },
+    {
+      "name": "getClusterNodes",
+      "description": "Returns information about all the nodes participating in the cluster",
+      "params": [],
+      "result": {
+        "name": "result",
+        "description": "The result field will be an array of JSON objects, each with the following sub fields:",
+        "schema": {
+          "type": "array",
+          "properties": {
+            "featureSet": {
+              "$ref": "#/components/schemas/u32",
+              "description": "The unique identifier of the node's feature set"
+            },
+            "gossip": {
+              "type": "string",
+              "description": "Gossip network address for the node"
+            },
+            "pubkey": {
+              "type": "string",
+              "description": "Node public key, as base-58 encoded string"
+            },
+            "rpc": {
+              "type": "string",
+              "description": "JSON RPC network address for the node, or `null` if the JSON RPC service is not enabled"
+            },
+            "shredVersion": {
+              "$ref": "#/components/schemas/u16",
+              "description": "The shred version the node has been configured to use"
+            },
+            "tpu": {
+              "type": "string",
+              "description": "TPU network address for the node"
+            },
+            "version": {
+              "type": "string",
+              "description": "The software version of the node, or `null` if the version information is not available"
+            }
+          },
+          "required": [
+            "pubkey"
+          ]
+        }
+      }
+    },
+    {
+      "name": "getEpochInfo",
+      "description": "Returns information about the current epoch",
+      "params": [
+        {
+          "name": "0",
+          "description": "Configuration object.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "commitment": {
+                "type": "string",
+                "description": "The commitment describes how finalized a block is at that point in time. See [Configuring State Commitment](/docs/rpc#configuring-state-commitment)."
+              },
+              "minContextSlot": {
+                "type": "number",
+                "description": "The minimum slot that the request can be evaluated at."
+              }
+            },
+            "required": []
+          },
+          "required": false
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "The result field will be an object with the following fields:",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "absoluteSlot": {
+              "$ref": "#/components/schemas/u64",
+              "description": "The current slot"
+            },
+            "blockHeight": {
+              "$ref": "#/components/schemas/u64",
+              "description": "The current block height"
+            },
+            "epoch": {
+              "$ref": "#/components/schemas/u64",
+              "description": "The current epoch"
+            },
+            "slotIndex": {
+              "$ref": "#/components/schemas/u64",
+              "description": "The current slot relative to the start of the current epoch"
+            },
+            "slotsInEpoch": {
+              "$ref": "#/components/schemas/u64",
+              "description": "The number of slots in this epoch"
+            },
+            "transactionCount": {
+              "$ref": "#/components/schemas/u64",
+              "description": "Total number of transactions processed without error since genesis"
+            }
+          },
+          "required": [
+            "absoluteSlot",
+            "blockHeight",
+            "epoch",
+            "slotIndex",
+            "slotsInEpoch"
+          ]
+        }
+      }
+    },
+    {
+      "name": "getEpochSchedule",
+      "description": "Returns the epoch schedule information from this cluster",
+      "params": [],
+      "result": {
+        "name": "result",
+        "description": "The result field will be an object with the following fields:",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "firstNormalEpoch": {
+              "$ref": "#/components/schemas/u64",
+              "description": "First normal-length epoch, `log2(slotsPerEpoch) - log2(MINIMUM_SLOTS_PER_EPOCH)`"
+            },
+            "firstNormalSlot": {
+              "$ref": "#/components/schemas/u64",
+              "description": "Minimum number of slots in an epoch, `MINIMUM_SLOTS_PER_EPOCH * (2.pow(firstNormalEpoch) - 1)`"
+            },
+            "leaderScheduleSlotOffset": {
+              "$ref": "#/components/schemas/u64",
+              "description": "The number of slots before beginning of an epoch to calculate a leader schedule for that epoch."
+            },
+            "slotsPerEpoch": {
+              "$ref": "#/components/schemas/u64",
+              "description": "The maximum number of slots in each epoch."
+            },
+            "warmup": {
+              "type": "boolean",
+              "description": "Whether epochs start short and grow."
+            }
+          },
+          "required": [
+            "firstNormalEpoch",
+            "firstNormalSlot",
+            "leaderScheduleSlotOffset",
+            "slotsPerEpoch",
+            "warmup"
+          ]
+        }
+      }
+    },
+    {
+      "name": "getFeeForMessage",
+      "description": "Get the fee the network will charge for a particular Message",
+      "params": [
+        {
+          "name": "message",
+          "description": "Base-64 encoded Message",
+          "schema": {
+            "type": "string"
+          },
+          "required": true
+        },
+        {
+          "name": "1",
+          "description": "Configuration object.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "commitment": {
+                "type": "string",
+                "description": "The commitment describes how finalized a block is at that point in time. See [Configuring State Commitment](/docs/rpc#configuring-state-commitment)."
+              },
+              "minContextSlot": {
+                "type": "number",
+                "description": "The minimum slot that the request can be evaluated at."
+              }
+            },
+            "required": []
+          },
+          "required": false
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "Fee corresponding to the message at the specified blockhash",
+        "schema": {
+          "$ref": "#/components/schemas/u64"
+        }
+      }
+    },
+    {
+      "name": "getFirstAvailableBlock",
+      "description": "Returns the slot of the lowest confirmed block that has not been purged from the ledger",
+      "params": [],
+      "result": {
+        "name": "result",
+        "description": "Slot",
+        "schema": {
+          "$ref": "#/components/schemas/u64"
+        }
+      }
+    },
+    {
+      "name": "getGenesisHash",
+      "description": "Returns the genesis hash",
+      "params": [],
+      "result": {
+        "name": "result",
+        "description": "A Hash as base-58 encoded string",
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getHealth",
+      "description": "Returns the current health of the node. A healthy node is one that is within `HEALTH_CHECK_SLOT_DISTANCE` slots of the latest cluster confirmed slot.",
+      "params": [],
+      "result": {
+        "name": "result",
+        "description": "If the node is healthy: \"ok\"",
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getHighestSnapshotSlot",
+      "description": "Returns the highest slot information that the node has snapshots for.\n\nThis will find the highest full snapshot slot, and the highest incremental snapshot slot *based on* the full snapshot slot, if there is one.",
+      "params": [],
+      "result": {
+        "name": "result",
+        "description": "When the node has a snapshot, this returns a JSON object with the following fields:",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "full": {
+              "$ref": "#/components/schemas/u64",
+              "description": "The highest full snapshot slot"
+            },
+            "incremental": {
+              "$ref": "#/components/schemas/u64",
+              "description": "The highest incremental snapshot slot *based on* `full`"
+            }
+          },
+          "required": [
+            "full"
+          ]
+        }
+      }
+    },
+    {
+      "name": "getIdentity",
+      "description": "Returns the identity pubkey for the current node",
+      "params": [],
+      "result": {
+        "name": "result",
+        "description": "The result field will be a JSON object with the following fields:",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "identity": {
+              "type": "string",
+              "description": "The identity pubkey of the current node (as a base-58 encoded string)"
+            }
+          },
+          "required": [
+            "identity"
+          ]
+        }
+      }
+    },
+    {
+      "name": "getInflationGovernor",
+      "description": "Returns the current inflation governor",
+      "params": [
+        {
+          "name": "0",
+          "description": "Configuration object.",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "commitment": {
+                "type": "string",
+                "description": "The commitment describes how finalized a block is at that point in time. See [Configuring State Commitment](/docs/rpc#configuring-state-commitment)."
+              }
+            },
+            "required": []
+          },
+          "required": false
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "The result field will be a JSON object with the following fields:",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "foundation": {
+              "$ref": "#/components/schemas/f64",
+              "description": "Percentage of total inflation allocated to the foundation"
+            },
+            "foundationTerm": {
+              "$ref": "#/components/schemas/f64",
+              "description": "Duration of foundation pool inflation in years"
+            },
+            "initial": {
+              "$ref": "#/components/schemas/f64",
+              "description": "Initial inflation percentage from time 0"
+            },
+            "taper": {
+              "$ref": "#/components/schemas/f64",
+              "description": "Rate per year at which inflation is lowered. (Rate reduction is derived using the target slot time in genesis config)"
+            },
+            "terminal": {
+              "$ref": "#/components/schemas/f64",
+              "description": "Terminal inflation percentage"
+            }
+          },
+          "required": [
+            "foundation",
+            "foundationTerm",
+            "initial",
+            "taper",
+            "terminal"
+          ]
+        }
+      }
+    },
+    {
+      "name": "getInflationRate",
+      "description": "Returns the specific inflation values for the current epoch",
+      "params": [],
+      "result": {
+        "name": "result",
+        "description": "The result field will be a JSON object with the following fields:",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "total": {
+              "$ref": "#/components/schemas/f64",
+              "description": "Total inflation"
+            },
+            "validator": {
+              "$ref": "#/components/schemas/f64",
+              "description": "Inflation allocated to validators"
+            },
+            "foundation": {
+              "$ref": "#/components/schemas/f64",
+              "description": "Inflation allocated to the foundation"
+            },
+            "epoch": {
+              "$ref": "#/components/schemas/u64",
+              "description": "Epoch for which these values are valid"
+            }
+          },
+          "required": [
+            "total",
+            "validator",
+            "foundation",
+            "epoch"
+          ]
+        }
+      }
+    },
+    {
+      "name": "getInflationReward",
+      "description": "Returns the inflation / staking reward for a list of addresses for an epoch",
+      "params": [
+        {
+          "name": "0",
+          "description": "An array of addresses to query, as base-58 encoded strings",
+          "schema": {
+            "type": "array"
+          },
+          "required": false
+        },
+        {
+          "name": "1",
+          "description": "Configuration object containing the following fields:",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "commitment": {
+                "type": "string",
+                "description": "The commitment describes how finalized a block is at that point in time. See [Configuring State Commitment](/docs/rpc#configuring-state-commitment)."
+              },
+              "epoch": {
+                "$ref": "#/components/schemas/u64",
+                "description": "An epoch for which the reward occurs. If omitted, the previous epoch will be used"
+              },
+              "minContextSlot": {
+                "type": "number",
+                "description": "The minimum slot that the request can be evaluated at"
+              }
+            },
+            "required": []
+          },
+          "required": false
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "The result field will be a JSON array of objects containing:",
+        "schema": {
+          "type": "array",
+          "properties": {
+            "epoch": {
+              "$ref": "#/components/schemas/u64",
+              "description": "Epoch for which reward occurred"
+            },
+            "effectiveSlot": {
+              "$ref": "#/components/schemas/u64",
+              "description": "The slot in which the rewards are effective"
+            },
+            "amount": {
+              "$ref": "#/components/schemas/u64",
+              "description": "Reward amount in lamports"
+            },
+            "postBalance": {
+              "$ref": "#/components/schemas/u64",
+              "description": "Post balance of the account in lamports"
+            },
+            "commission": {
+              "$ref": "#/components/schemas/u8 | undefined",
+              "description": "Vote account commission when the reward was credited"
+            }
+          },
+          "required": [
+            "epoch",
+            "effectiveSlot",
+            "amount",
+            "postBalance",
+            "commission"
+          ]
+        }
+      }
+    },
+    {
+      "name": "getLargestAccounts",
+      "description": "Returns the 20 largest accounts, by lamport balance (results may be cached up to two hours)",
+      "params": [
+        {
+          "name": "0",
+          "description": "Configuration object containing the following fields:",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "commitment": {
+                "type": "string",
+                "description": "The commitment describes how finalized a block is at that point in time. See [Configuring State Commitment](/docs/rpc#configuring-state-commitment)."
+              },
+              "filter": {
+                "type": "string",
+                "enum": [
+                  "circulating",
+                  "nonCirculating"
+                ],
+                "description": "Filter results by account type"
+              }
+            },
+            "required": []
+          },
+          "required": false
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "The result will be an RpcResponse JSON object with `value` equal to an array of objects containing:",
+        "schema": {
+          "type": "array",
+          "properties": {
+            "address": {
+              "type": "string",
+              "description": "Base-58 encoded address of the account"
+            },
+            "lamports": {
+              "$ref": "#/components/schemas/u64",
+              "description": "Number of lamports in the account"
+            }
+          },
+          "required": [
+            "address",
+            "lamports"
+          ]
+        }
+      }
+    },
+    {
+      "name": "getLatestBlockhash",
+      "description": "Returns the latest blockhash",
+      "params": [
+        {
+          "name": "0",
+          "description": "Configuration object containing the following fields:",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "commitment": {
+                "type": "string",
+                "description": "The commitment describes how finalized a block is at that point in time. See [Configuring State Commitment](/docs/rpc#configuring-state-commitment)."
+              },
+              "minContextSlot": {
+                "type": "number",
+                "description": "The minimum slot that the request can be evaluated at"
+              }
+            },
+            "required": []
+          },
+          "required": false
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "RpcResponse JSON object with `value` field set to a JSON object including:",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "blockhash": {
+              "type": "string",
+              "description": "A Hash as base-58 encoded string"
+            },
+            "lastValidBlockHeight": {
+              "$ref": "#/components/schemas/u64",
+              "description": "Last [block height](/docs/references/terminology#block-height) at which the blockhash will be valid"
+            }
+          },
+          "required": [
+            "blockhash",
+            "lastValidBlockHeight"
+          ]
+        }
+      }
+    },
+    {
+      "name": "getLeaderSchedule",
+      "description": "Returns the leader schedule for an epoch",
+      "params": [
+        {
+          "name": "slot number",
+          "description": "Fetch the leader schedule for the epoch that corresponds to the provided slot. If unspecified, the leader schedule for the current epoch is fetched.",
+          "schema": {
+            "$ref": "#/components/schemas/u64"
+          },
+          "required": false
+        },
+        {
+          "name": "1",
+          "description": "Configuration object containing the following fields:",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "commitment": {
+                "type": "string",
+                "description": "The commitment describes how finalized a block is at that point in time. See [Configuring State Commitment](/docs/rpc#configuring-state-commitment)."
+              },
+              "identity": {
+                "type": "string",
+                "description": "Only return results for this validator identity (base-58 encoded)"
+              }
+            },
+            "required": []
+          },
+          "required": false
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "Returns `null` if requested epoch is not found, otherwise returns an object where:\n\n* Keys are validator identities (as base-58 encoded strings)\n* Values are arrays of leader slot indices relative to the first slot in the requested epoch",
+        "schema": {
+          "type": "object"
+        }
+      }
+    },
+    {
+      "name": "getMaxRetransmitSlot",
+      "description": "Get the max slot seen from retransmit stage.",
+      "params": [],
+      "result": {
+        "name": "result",
+        "description": "Slot number",
+        "schema": {
+          "$ref": "#/components/schemas/u64"
+        }
+      }
+    },
+    {
+      "name": "getMaxShredInsertSlot",
+      "description": "Get the max slot seen from after shred insert.",
+      "params": [],
+      "result": {
+        "name": "result",
+        "description": "Slot number",
+        "schema": {
+          "$ref": "#/components/schemas/u64"
+        }
+      }
+    },
+    {
+      "name": "getMinimumBalanceForRentExemption",
+      "description": "Returns minimum balance required to make account rent exempt.",
+      "params": [
+        {
+          "name": "length",
+          "description": "The Account's data length",
+          "schema": {
+            "$ref": "#/components/schemas/usize"
+          },
+          "required": true
+        },
+        {
+          "name": "1",
+          "description": "Configuration object containing the following fields:",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "commitment": {
+                "type": "string",
+                "description": "The commitment describes how finalized a block is at that point in time. See [Configuring State Commitment](/docs/rpc#configuring-state-commitment)."
+              }
+            },
+            "required": []
+          },
+          "required": false
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "Minimum lamports required in the Account to remain rent free",
+        "schema": {
+          "$ref": "#/components/schemas/u64"
+        }
+      }
+    },
+    {
+      "name": "getMultipleAccounts",
+      "description": "Returns the account information for a list of Pubkeys.",
+      "params": [
+        {
+          "name": "0",
+          "description": "An array of Pubkeys to query, as base-58 encoded strings (up to a maximum of 100)",
+          "schema": {
+            "type": "array"
+          },
+          "required": true
+        },
+        {
+          "name": "1",
+          "description": "Configuration object containing the following fields:",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "commitment": {
+                "type": "string",
+                "description": "The commitment describes how finalized a block is at that point in time. See [Configuring State Commitment](/docs/rpc#configuring-state-commitment)."
+              },
+              "minContextSlot": {
+                "type": "number",
+                "description": "The minimum slot that the request can be evaluated at"
+              },
+              "dataSlice": {
+                "type": "object",
+                "description": "Request a slice of the account's data.\n\n* `length: <usize>` - number of bytes to return\n* `offset: <usize>` - byte offset from which to start reading"
+              },
+              "encoding": {
+                "type": "string",
+                "enum": [
+                  "jsonParsed",
+                  "base58",
+                  "base64",
+                  "base64+zstd"
+                ],
+                "default": "base64",
+                "description": "Encoding format for the returned Account data\n\n* `base58` is slow and limited to less than 129 bytes of Account data.\n* `base64` will return base64 encoded data for Account data of any size.\n* `base64+zstd` compresses the Account data using [Zstandard](https://facebook.github.io/zstd/) and base64-encodes the result.\n* `jsonParsed` encoding attempts to use program-specific state parsers to return more human-readable and explicit account state data.\n* If `jsonParsed` is requested but a parser cannot be found, the field falls back to `base64` encoding, detectable when the `data` field is type `<string>`."
+              }
+            },
+            "required": []
+          },
+          "required": false
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "The result will be an array containing either:\n\n* `null` - if the account at that Pubkey doesn't exist, or\n* Account objects with the following fields:",
+        "schema": {
+          "type": "array",
+          "properties": {
+            "data": {
+              "$ref": "#/components/schemas/[string,encoding] | object",
+              "description": "Data associated with the account, either as encoded binary data or JSON format `{<program>: <state>}` - depending on encoding parameter"
+            },
+            "executable": {
+              "type": "boolean",
+              "description": "Boolean indicating if the account contains a program (and is strictly read-only)"
+            },
+            "lamports": {
+              "$ref": "#/components/schemas/u64",
+              "description": "Number of lamports assigned to this account"
+            },
+            "owner": {
+              "type": "string",
+              "description": "Base-58 encoded Pubkey of the program this account has been assigned to"
+            },
+            "rentEpoch": {
+              "$ref": "#/components/schemas/u64",
+              "description": "The epoch at which this account will next owe rent"
+            },
+            "space": {
+              "$ref": "#/components/schemas/u64",
+              "description": "The data size of the account"
+            }
+          },
+          "required": [
+            "data",
+            "executable",
+            "lamports",
+            "owner",
+            "rentEpoch",
+            "space"
+          ]
+        }
+      }
+    },
+    {
+      "name": "getProgramAccounts",
+      "description": "Returns all accounts owned by the provided program Pubkey",
+      "params": [
+        {
+          "name": "pubkey",
+          "description": "Pubkey of program, as base-58 encoded string",
+          "schema": {
+            "type": "string"
+          },
+          "required": true
+        },
+        {
+          "name": "1",
+          "description": "Configuration object containing the following fields:",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "commitment": {
+                "type": "string",
+                "description": "The commitment describes how finalized a block is at that point in time. See [Configuring State Commitment](/docs/rpc#configuring-state-commitment)."
+              },
+              "minContextSlot": {
+                "type": "number",
+                "description": "The minimum slot that the request can be evaluated at"
+              },
+              "withContext": {
+                "type": "boolean",
+                "description": "Wrap the result in an RpcResponse JSON object"
+              },
+              "encoding": {
+                "type": "string",
+                "enum": [
+                  "jsonParsed",
+                  "base58",
+                  "base64",
+                  "base64+zstd",
+                  "binary"
+                ],
+                "default": "binary",
+                "description": "Encoding format for the returned Account data\n\n* `base58` is slow and limited to less than 129 bytes of Account data.\n* `base64` will return base64 encoded data for Account data of any size.\n* `base64+zstd` compresses the Account data using [Zstandard](https://facebook.github.io/zstd/) and base64-encodes the result.\n* `binary` (⚠️ deprecated) is similar to `base58`, except data will be a base58-encoded string and not an array that includes the encoding.\n* `jsonParsed` encoding attempts to use program-specific state parsers to return more human-readable and explicit account state data.\n* If `jsonParsed` is requested but a parser cannot be found, the field falls back to `base64` encoding, detectable when the `data` field is type `<string>`."
+              },
+              "dataSlice": {
+                "type": "object",
+                "description": "Request a slice of the account's data.\n\n* `length: <usize>` - number of bytes to return\n* `offset: <usize>` - byte offset from which to start reading"
+              },
+              "filters": {
+                "type": "array",
+                "description": "Filter results using up to 4 filter objects. See [Filtering](/docs/rpc#filter-criteria)."
+              }
+            },
+            "required": []
+          },
+          "required": false
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "By default, returns an array of JSON objects. If `withContext` flag is set, the array will be wrapped in an RpcResponse JSON object.\n\nEach object contains:",
+        "schema": {
+          "type": "array",
+          "properties": {
+            "pubkey": {
+              "type": "string",
+              "description": "The account Pubkey as base-58 encoded string"
+            },
+            "account": {
+              "type": "object",
+              "description": "A JSON object containing:\n\n* `lamports: <u64>` - number of lamports assigned to this account, as a u64\n\n* `owner: <string>` - base-58 encoded Pubkey of the program this account has been assigned to\n\n* `data: <string|[string,encoding]|object>` - data associated with the account. Format depends on encoding parameter:\n\n  * If the encoding parameter is left as the deprecated default of `binary`, this will be a string containing encoded binary data.\n  * If `base58`, `base64`, or `base64+zstd` is specified, this will be an array, where the first element is the encoded data string and the second element is the encoding format.\n  * If `jsonParsed` is specified, this will be JSON format `{<program>: <state>}`.\n\n* `executable: <bool>` - boolean indicating if the account contains a program (and is strictly read-only)\n\n* `rentEpoch: <u64>` - the epoch at which this account will next owe rent, as u64\n\n* `space: <u64>` - the data size of the account"
+            }
+          },
+          "required": [
+            "pubkey",
+            "account"
+          ]
+        }
+      }
+    },
+    {
+      "name": "getRecentPerformanceSamples",
+      "description": "Returns a list of recent performance samples, in reverse slot order. Performance samples are taken every 60 seconds and include the number of transactions and slots that occur in a given time window.",
+      "params": [
+        {
+          "name": "number of samples",
+          "description": "Number of samples to return (maximum 720)",
+          "schema": {
+            "$ref": "#/components/schemas/usize"
+          },
+          "required": false
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "An array of performance sample objects containing:",
+        "schema": {
+          "type": "array",
+          "properties": {
+            "slot": {
+              "$ref": "#/components/schemas/u64",
+              "description": "Slot in which sample was taken at"
+            },
+            "numTransactions": {
+              "$ref": "#/components/schemas/u64",
+              "description": "Number of transactions processed during the sample period"
+            },
+            "numSlots": {
+              "$ref": "#/components/schemas/u64",
+              "description": "Number of slots completed during the sample period"
+            },
+            "samplePeriodSecs": {
+              "$ref": "#/components/schemas/u16",
+              "description": "Number of seconds in a sample window"
+            },
+            "numNonVoteTransactions": {
+              "$ref": "#/components/schemas/u64",
+              "description": "Number of non-vote transactions processed during the sample period"
+            }
+          },
+          "required": [
+            "slot",
+            "numTransactions",
+            "numSlots",
+            "samplePeriodSecs",
+            "numNonVoteTransactions"
+          ]
+        }
+      }
+    },
+    {
+      "name": "getRecentPrioritizationFees",
+      "description": "Returns a list of prioritization fees from recent blocks.",
+      "params": [
+        {
+          "name": "address",
+          "description": "An array of Account addresses (up to a maximum of 128 addresses), as base-58 encoded strings",
+          "schema": {
+            "type": "array"
+          },
+          "required": false
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "An array of prioritization fee objects containing:",
+        "schema": {
+          "type": "array",
+          "properties": {
+            "slot": {
+              "$ref": "#/components/schemas/u64",
+              "description": "Slot in which the fee was observed"
+            },
+            "prioritizationFee": {
+              "$ref": "#/components/schemas/u64",
+              "description": "The per-compute-unit fee paid by at least one successfully landed transaction, specified in increments of micro-lamports (0.000001 lamports)"
+            }
+          },
+          "required": [
+            "slot",
+            "prioritizationFee"
+          ]
+        }
+      }
+    },
+    {
+      "name": "getSignaturesForAddress",
+      "description": "Returns signatures for confirmed transactions that include the given address in their `accountKeys` list. Returns signatures backwards in time from the provided signature or most recent confirmed block",
+      "params": [
+        {
+          "name": "address",
+          "description": "Account address as base-58 encoded string",
+          "schema": {
+            "type": "string"
+          },
+          "required": true
+        },
+        {
+          "name": "1",
+          "description": "Configuration object containing the following fields:",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "commitment": {
+                "type": "string",
+                "description": "The commitment describes how finalized a block is at that point in time. See [Configuring State Commitment](/docs/rpc#configuring-state-commitment)."
+              },
+              "minContextSlot": {
+                "type": "number",
+                "description": "The minimum slot that the request can be evaluated at"
+              },
+              "limit": {
+                "type": "number",
+                "description": "Maximum transaction signatures to return (between 1 and 1,000).\n\nDefault: `1000`"
+              },
+              "before": {
+                "type": "string",
+                "description": "Start searching backwards from this transaction signature. If not provided the search starts from the top of the highest max confirmed block."
+              },
+              "until": {
+                "type": "string",
+                "description": "Search until this transaction signature, if found before limit reached"
+              }
+            },
+            "required": []
+          },
+          "required": false
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "An array of transaction signature information objects, ordered from **newest** to **oldest** transaction, containing:",
+        "schema": {
+          "type": "array",
+          "properties": {
+            "signature": {
+              "type": "string",
+              "description": "Transaction signature as base-58 encoded string"
+            },
+            "slot": {
+              "$ref": "#/components/schemas/u64",
+              "description": "The slot that contains the block with the transaction"
+            },
+            "err": {
+              "type": "object",
+              "description": "Error if transaction failed, null if transaction succeeded. See [TransactionError definitions](https://github.com/solana-labs/solana/blob/c0c60386544ec9a9ec7119229f37386d9f070523/sdk/src/transaction/error.rs#L13) for more info."
+            },
+            "memo": {
+              "type": "string",
+              "description": "Memo associated with the transaction, null if no memo is present"
+            },
+            "blockTime": {
+              "$ref": "#/components/schemas/i64",
+              "description": "Estimated production time, as Unix timestamp (seconds since the Unix epoch) of when transaction was processed. null if not available."
+            },
+            "confirmationStatus": {
+              "type": "string",
+              "description": "The transaction's cluster confirmation status; Either `processed`, `confirmed`, or `finalized`. See [Commitment](/docs/rpc/#configuring-state-commitment) for more on optimistic confirmation."
+            }
+          },
+          "required": [
+            "signature",
+            "slot"
+          ]
+        }
+      }
+    },
+    {
+      "name": "getSignatureStatuses",
+      "description": "Returns the statuses of a list of signatures. Each signature must be a [txid](/docs/references/terminology#transaction-id), the first signature of a transaction.",
+      "params": [
+        {
+          "name": "0",
+          "description": "An array of transaction signatures to confirm, as base-58 encoded strings (up to a maximum of 256)",
+          "schema": {
+            "type": "array"
+          },
+          "required": true
+        },
+        {
+          "name": "1",
+          "description": "Configuration object containing the following fields:",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "searchTransactionHistory": {
+                "type": "boolean",
+                "description": "if `true` - a Solana node will search its ledger cache for any signatures not found in the recent status cache"
+              }
+            },
+            "required": []
+          },
+          "required": false
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "An array of `RpcResponse<object>` consisting of either `null` or an object containing the following fields:",
+        "schema": {
+          "type": "array",
+          "properties": {
+            "slot": {
+              "$ref": "#/components/schemas/u64",
+              "description": "The slot the transaction was processed"
+            },
+            "confirmations": {
+              "$ref": "#/components/schemas/usize",
+              "description": "Number of blocks since signature confirmation, `null` if rooted, as well as finalized by a supermajority of the cluster"
+            },
+            "err": {
+              "type": "object",
+              "description": "Error if transaction failed, `null` if transaction succeeded. See [TransactionError definitions](https://github.com/anza-xyz/solana-sdk/blob/50dfbd088c51b7229c67d432d8c8801dafaa7904/transaction-error/src/lib.rs#L15)"
+            },
+            "status": {
+              "type": "object",
+              "description": "**DEPRECATED** Transaction status\n\n* `\"Ok\": <null>` - Transaction was successful\n* `\"Err\": <ERR>` - Transaction failed with TransactionError"
+            },
+            "confirmationStatus": {
+              "type": "string",
+              "description": "The transaction's cluster confirmation status; Either `processed`, `confirmed`, or `finalized`. See [Commitment](/docs/rpc/#configuring-state-commitment) for more on optimistic confirmation."
+            }
+          },
+          "required": [
+            "slot",
+            "status"
+          ]
+        }
+      }
+    },
+    {
+      "name": "getSlot",
+      "description": "Returns the slot that has reached the [given or default commitment level](/docs/rpc/#configuring-state-commitment)",
+      "params": [
+        {
+          "name": "0",
+          "description": "Configuration object containing the following fields:",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "commitment": {
+                "type": "string",
+                "description": "The commitment describes how finalized a block is at that point in time. See [Configuring State Commitment](/docs/rpc#configuring-state-commitment)."
+              },
+              "minContextSlot": {
+                "type": "number",
+                "description": "The minimum slot that the request can be evaluated at"
+              }
+            },
+            "required": []
+          },
+          "required": false
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "Current slot",
+        "schema": {
+          "$ref": "#/components/schemas/u64"
+        }
+      }
+    },
+    {
+      "name": "getSlotLeader",
+      "description": "Returns the current slot leader",
+      "params": [
+        {
+          "name": "0",
+          "description": "Configuration object containing the following fields:",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "commitment": {
+                "type": "string",
+                "description": "The commitment describes how finalized a block is at that point in time. See [Configuring State Commitment](/docs/rpc#configuring-state-commitment)."
+              },
+              "minContextSlot": {
+                "type": "number",
+                "description": "The minimum slot that the request can be evaluated at"
+              }
+            },
+            "required": []
+          },
+          "required": false
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "Node identity Pubkey as base-58 encoded string",
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "getSlotLeaders",
+      "description": "Returns the slot leaders for a given slot range",
+      "params": [
+        {
+          "name": "start slot",
+          "description": "Start slot, as u64 integer",
+          "schema": {
+            "$ref": "#/components/schemas/u64"
+          },
+          "required": true
+        },
+        {
+          "name": "limit",
+          "description": "Limit, as u64 integer (between 1 and 5,000)",
+          "schema": {
+            "$ref": "#/components/schemas/u64"
+          },
+          "required": true
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "Array of Node identity public keys as base-58 encoded strings.",
+        "schema": {
+          "type": "array"
+        }
+      }
+    },
+    {
+      "name": "getStakeMinimumDelegation",
+      "description": "Returns the stake minimum delegation, in lamports.",
+      "params": [
+        {
+          "name": "0",
+          "description": "Configuration object containing the following fields:",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "commitment": {
+                "type": "string",
+                "description": "The commitment describes how finalized a block is at that point in time. See [Configuring State Commitment](/docs/rpc#configuring-state-commitment)."
+              }
+            },
+            "required": []
+          },
+          "required": false
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "The stake minimum delegation, in lamports",
+        "schema": {
+          "$ref": "#/components/schemas/u64"
+        }
+      }
+    },
+    {
+      "name": "getSupply",
+      "description": "Returns information about the current supply.",
+      "params": [
+        {
+          "name": "0",
+          "description": "Configuration object containing the following fields:",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "commitment": {
+                "type": "string",
+                "description": "The commitment describes how finalized a block is at that point in time. See [Configuring State Commitment](/docs/rpc#configuring-state-commitment)."
+              },
+              "excludeNonCirculatingAccountsList": {
+                "type": "boolean",
+                "description": "Exclude non circulating accounts list from response"
+              }
+            },
+            "required": []
+          },
+          "required": false
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "The result will be a JSON object containing:",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "circulating": {
+              "$ref": "#/components/schemas/u64",
+              "description": "Circulating supply in lamports"
+            },
+            "nonCirculating": {
+              "$ref": "#/components/schemas/u64",
+              "description": "Non-circulating supply in lamports"
+            },
+            "nonCirculatingAccounts": {
+              "type": "array",
+              "description": "An array of account addresses of non-circulating accounts, as strings. If `excludeNonCirculatingAccountsList` is enabled, the returned array will be empty."
+            },
+            "total": {
+              "$ref": "#/components/schemas/u64",
+              "description": "Total supply in lamports"
+            }
+          },
+          "required": [
+            "circulating",
+            "nonCirculating",
+            "nonCirculatingAccounts",
+            "total"
+          ]
+        }
+      }
+    },
+    {
+      "name": "getTokenAccountBalance",
+      "description": "Returns the token balance of an SPL Token account.",
+      "params": [
+        {
+          "name": "pubkey",
+          "description": "Pubkey of Token account to query, as base-58 encoded string",
+          "schema": {
+            "type": "string"
+          },
+          "required": true
+        },
+        {
+          "name": "1",
+          "description": "Configuration object containing the following fields:",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "commitment": {
+                "type": "string",
+                "description": "The commitment describes how finalized a block is at that point in time. See [Configuring State Commitment](/docs/rpc#configuring-state-commitment)."
+              }
+            },
+            "required": []
+          },
+          "required": false
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "The result will be a JSON object containing:",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "amount": {
+              "type": "string",
+              "description": "The raw balance without decimals, a string representation of u64"
+            },
+            "decimals": {
+              "$ref": "#/components/schemas/u8",
+              "description": "Number of base 10 digits to the right of the decimal place"
+            },
+            "uiAmount": {
+              "type": "number",
+              "description": "The balance, using mint-prescribed decimals **DEPRECATED**"
+            },
+            "uiAmountString": {
+              "type": "string",
+              "description": "The balance as a string, using mint-prescribed decimals"
+            }
+          },
+          "required": [
+            "amount",
+            "decimals",
+            "uiAmountString"
+          ]
+        }
+      }
+    },
+    {
+      "name": "getTokenAccountsByDelegate",
+      "description": "Returns all SPL Token accounts by approved Delegate.",
+      "params": [
+        {
+          "name": "pubkey",
+          "description": "Pubkey of account delegate to query, as base-58 encoded string",
+          "schema": {
+            "type": "string"
+          },
+          "required": true
+        },
+        {
+          "name": "1",
+          "description": "A JSON object with one of the following fields:",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "mint": {
+                "type": "string",
+                "description": "Pubkey of the specific token Mint to limit accounts to, as base-58 encoded string; or"
+              },
+              "programId": {
+                "type": "string",
+                "description": "Pubkey of the Token program that owns the accounts, as base-58 encoded string"
+              }
+            },
+            "required": []
+          },
+          "required": true
+        },
+        {
+          "name": "2",
+          "description": "Configuration object containing the following fields:",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "commitment": {
+                "type": "string",
+                "description": "The commitment describes how finalized a block is at that point in time. See [Configuring State Commitment](/docs/rpc#configuring-state-commitment)."
+              },
+              "minContextSlot": {
+                "type": "number",
+                "description": "The minimum slot that the request can be evaluated at"
+              },
+              "dataSlice": {
+                "type": "object",
+                "description": "Request a slice of the account's data.\n\n* `length: <usize>` - number of bytes to return\n* `offset: <usize>` - byte offset from which to start reading"
+              },
+              "encoding": {
+                "type": "string",
+                "enum": [
+                  "base58",
+                  "base64",
+                  "base64+zstd",
+                  "binary",
+                  "jsonParsed"
+                ],
+                "default": "binary",
+                "description": "Encoding format for Account data\n\n* `base58` is slow and limited to less than 129 bytes of Account data.\n* `base64` will return base64 encoded data for Account data of any size.\n* `base64+zstd` compresses the Account data using [Zstandard](https://facebook.github.io/zstd/) and base64-encodes the result.\n* `binary` (⚠️ deprecated) is similar to `base58`, except data will be a base58-encoded string and not an array that includes the encoding.\n* `jsonParsed` encoding attempts to use program-specific state parsers to return more human-readable and explicit account state data.\n* If `jsonParsed` is requested but a parser cannot be found, the field falls back to `base64` encoding, detectable when the `data` field is type `string`."
+              }
+            },
+            "required": []
+          },
+          "required": false
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "An array of JSON objects containing:",
+        "schema": {
+          "type": "array",
+          "properties": {
+            "pubkey": {
+              "type": "string",
+              "description": "The account Pubkey as base-58 encoded string"
+            },
+            "account": {
+              "type": "object",
+              "description": "A JSON object containing:\n\n* `lamports: <u64>` - number of lamports assigned to this account, as a u64\n\n* `owner: <string>` - base-58 encoded Pubkey of the program this account has been assigned to\n\n* `data: <string|[string,encoding]|object>` - Token state data associated with the account. Format depends on encoding parameter:\n\n  * If the encoding parameter is left as the deprecated default of `binary`, this will be a string containing encoded binary data.\n  * If `base58`, `base64`, or `base64+zstd` is specified, this will be an array, where the first element is the encoded data string and the second element is the encoding format.\n  * If `jsonParsed` is specified, this will be JSON format `{<program>: <state>}`.\n\n* `executable: <bool>` - boolean indicating if the account contains a program (and is strictly read-only)\n\n* `rentEpoch: <u64>` - the epoch at which this account will next owe rent, as u64\n\n* `space: <u64>` - the data size of the account\n\nWhen the data is requested with the `jsonParsed` encoding a format similar to that of the [Token Balances Structure](/docs/rpc/json-structures#token-balances) can be expected inside the structure, both for the `tokenAmount` and the `delegatedAmount` - with the latter being an optional object."
+            }
+          },
+          "required": [
+            "pubkey",
+            "account"
+          ]
+        }
+      }
+    },
+    {
+      "name": "getTokenAccountsByOwner",
+      "description": "Returns all SPL Token accounts by token owner.",
+      "params": [
+        {
+          "name": "pubkey",
+          "description": "Pubkey of account owner to query, as base-58 encoded string",
+          "schema": {
+            "type": "string"
+          },
+          "required": true
+        },
+        {
+          "name": "1",
+          "description": "A JSON object with one of the following fields:",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "mint": {
+                "type": "string",
+                "description": "Pubkey of the specific token Mint to limit accounts to, as base-58 encoded string"
+              },
+              "programId": {
+                "type": "string",
+                "description": "Pubkey of the Token program that owns the accounts, as base-58 encoded string"
+              }
+            },
+            "required": []
+          },
+          "required": true
+        },
+        {
+          "name": "2",
+          "description": "Configuration object containing the following fields:",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "commitment": {
+                "type": "string",
+                "description": "The commitment describes how finalized a block is at that point in time. See [Configuring State Commitment](/docs/rpc#configuring-state-commitment)."
+              },
+              "minContextSlot": {
+                "type": "number",
+                "description": "The minimum slot that the request can be evaluated at"
+              },
+              "dataSlice": {
+                "type": "object",
+                "description": "Request a slice of the account's data.\n\n* `length: <usize>` - number of bytes to return\n* `offset: <usize>` - byte offset from which to start reading"
+              },
+              "encoding": {
+                "type": "string",
+                "enum": [
+                  "base58",
+                  "base64",
+                  "base64+zstd",
+                  "binary",
+                  "jsonParsed"
+                ],
+                "default": "binary",
+                "description": "Encoding format for Account data\n\n* `base58` is slow and limited to less than 129 bytes of Account data.\n* `base64` will return base64 encoded data for Account data of any size.\n* `base64+zstd` compresses the Account data using [Zstandard](https://facebook.github.io/zstd/) and base64-encodes the result.\n* `binary` (⚠️ deprecated) is similar to `base58`, except data will be a base58-encoded string and not an array that includes the encoding.\n* `jsonParsed` encoding attempts to use program-specific state parsers to return more human-readable and explicit account state data.\n* If `jsonParsed` is requested but a parser cannot be found, the field falls back to `base64` encoding, detectable when the `data` field is type `string`."
+              }
+            },
+            "required": []
+          },
+          "required": false
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "An array of JSON objects containing:",
+        "schema": {
+          "type": "array",
+          "properties": {
+            "pubkey": {
+              "type": "string",
+              "description": "The account Pubkey as base-58 encoded string"
+            },
+            "account": {
+              "type": "object",
+              "description": "A JSON object containing:\n\n* `lamports: <u64>` - number of lamports assigned to this account, as a u64\n\n* `owner: <string>` - base-58 encoded Pubkey of the program this account has been assigned to\n\n* `data: <string|[string,encoding]|object>` - Token state data associated with the account. Format depends on encoding parameter:\n\n  * If the encoding parameter is left as the deprecated default of `binary`, this will be a string containing encoded binary data.\n  * If `base58`, `base64`, or `base64+zstd` is specified, this will be an array, where the first element is the encoded data string and the second element is the encoding format.\n  * If `jsonParsed` is specified, this will be JSON format `{<program>: <state>}`.\n\n* `executable: <bool>` - boolean indicating if the account contains a program (and is strictly read-only)\n\n* `rentEpoch: <u64>` - the epoch at which this account will next owe rent, as u64\n\n* `space: <u64>` - the data size of the account\n\nWhen the data is requested with the `jsonParsed` encoding a format similar to that of the [Token Balances Structure](/docs/rpc/json-structures#token-balances) can be expected inside the structure, both for the `tokenAmount` and the `delegatedAmount` - with the latter being an optional object."
+            }
+          },
+          "required": [
+            "pubkey",
+            "account"
+          ]
+        }
+      }
+    },
+    {
+      "name": "getTokenLargestAccounts",
+      "description": "Returns the 20 largest accounts of a particular SPL Token type.",
+      "params": [
+        {
+          "name": "pubkey",
+          "description": "Pubkey of the token Mint to query, as base-58 encoded string",
+          "schema": {
+            "type": "string"
+          },
+          "required": true
+        },
+        {
+          "name": "1",
+          "description": "Configuration object containing the following fields:",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "commitment": {
+                "type": "string",
+                "description": "The commitment describes how finalized a block is at that point in time. See [Configuring State Commitment](/docs/rpc#configuring-state-commitment)."
+              }
+            },
+            "required": []
+          },
+          "required": false
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "An array of JSON objects containing:",
+        "schema": {
+          "type": "array",
+          "properties": {
+            "address": {
+              "type": "string",
+              "description": "The address of the token account"
+            },
+            "amount": {
+              "type": "string",
+              "description": "The raw token account balance without decimals, a string representation of u64"
+            },
+            "decimals": {
+              "$ref": "#/components/schemas/u8",
+              "description": "Number of base 10 digits to the right of the decimal place"
+            },
+            "uiAmount": {
+              "type": "number",
+              "description": "The token account balance, using mint-prescribed decimals **DEPRECATED**"
+            },
+            "uiAmountString": {
+              "type": "string",
+              "description": "The token account balance as a string, using mint-prescribed decimals"
+            }
+          },
+          "required": [
+            "address",
+            "amount",
+            "decimals",
+            "uiAmountString"
+          ]
+        }
+      }
+    },
+    {
+      "name": "getTokenSupply",
+      "description": "Returns the total supply of an SPL Token type.",
+      "params": [
+        {
+          "name": "pubkey",
+          "description": "Pubkey of the token Mint to query, as base-58 encoded string",
+          "schema": {
+            "type": "string"
+          },
+          "required": true
+        },
+        {
+          "name": "1",
+          "description": "Configuration object containing the following fields:",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "commitment": {
+                "type": "string",
+                "description": "The commitment describes how finalized a block is at that point in time. See [Configuring State Commitment](/docs/rpc#configuring-state-commitment)."
+              }
+            },
+            "required": []
+          },
+          "required": false
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "A JSON object containing:",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "amount": {
+              "type": "string",
+              "description": "The raw total token supply without decimals, a string representation of u64"
+            },
+            "decimals": {
+              "$ref": "#/components/schemas/u8",
+              "description": "Number of base 10 digits to the right of the decimal place"
+            },
+            "uiAmount": {
+              "type": "number",
+              "description": "The total token supply, using mint-prescribed decimals"
+            },
+            "uiAmountString": {
+              "type": "string",
+              "description": "The total token supply as a string, using mint-prescribed decimals"
+            }
+          },
+          "required": [
+            "amount",
+            "decimals",
+            "uiAmountString"
+          ]
+        }
+      }
+    },
+    {
+      "name": "getTransaction",
+      "description": "Returns transaction details for a confirmed transaction",
+      "params": [
+        {
+          "name": "signature",
+          "description": "Transaction signature, as base-58 encoded string",
+          "schema": {
+            "type": "string"
+          },
+          "required": true
+        },
+        {
+          "name": "config",
+          "description": "Configuration object containing the following fields:",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "commitment": {
+                "type": "string",
+                "enum": [
+                  "confirmed",
+                  "finalized"
+                ],
+                "default": "finalized",
+                "description": "The commitment describes how finalized a block is at that point in time. See [Configuring State Commitment](/docs/rpc#configuring-state-commitment).\n\n* `processed` is not supported."
+              },
+              "maxSupportedTransactionVersion": {
+                "type": "number",
+                "enum": [
+                  "0"
+                ],
+                "default": "0",
+                "description": "Currently, the only valid value for this parameter is `0`. Setting it to `0` allows you to fetch all transactions, including both Versioned and legacy transactions.\n\nThis parameter determines the maximum transaction version that will be returned in the response. If you request a transaction with a higher version than this value, an error will be returned. If you omit this parameter, only legacy transactions will be returned—any versioned transaction will result in an error."
+              },
+              "encoding": {
+                "type": "string",
+                "enum": [
+                  "json",
+                  "jsonParsed",
+                  "base64",
+                  "base58"
+                ],
+                "default": "json",
+                "description": "Encoding for the returned Transaction\n\n* `jsonParsed` encoding attempts to use program-specific state parsers to return more human-readable and explicit data in the `transaction.message.instructions` list.\n* If `jsonParsed` is requested but a parser cannot be found, the instruction falls back to regular JSON encoding (`accounts`, `data`, and `programIdIndex` fields)."
+              }
+            },
+            "required": []
+          },
+          "required": false
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "Returns `null` if transaction is not found or not confirmed, otherwise returns an object containing:",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "blockTime": {
+              "$ref": "#/components/schemas/i64",
+              "description": "Estimated production time, as Unix timestamp (seconds since the Unix epoch) of when the transaction was processed. null if not available"
+            },
+            "meta": {
+              "type": "object",
+              "description": "Transaction status [metadata object](/docs/rpc/json-structures#transaction-status-metadata) or `null`."
+            },
+            "slot": {
+              "$ref": "#/components/schemas/u64",
+              "description": "The slot this transaction was processed in"
+            },
+            "transaction": {
+              "$ref": "#/components/schemas/object | [string,encoding]",
+              "description": "[Transaction](/docs/rpc/json-structures#transactions) object, either in JSON format or encoded binary data, depending on encoding parameter"
+            },
+            "version": {
+              "$ref": "#/components/schemas/\"legacy\" | number | undefined",
+              "description": "Transaction version. Undefined if `maxSupportedTransactionVersion` is not set in request params."
+            }
+          },
+          "required": [
+            "slot",
+            "transaction",
+            "version"
+          ]
+        }
+      }
+    },
+    {
+      "name": "getTransactionCount",
+      "description": "Returns the current Transaction count from the ledger",
+      "params": [
+        {
+          "name": "0",
+          "description": "Configuration object containing the following fields:",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "commitment": {
+                "type": "string",
+                "description": "The commitment describes how finalized a block is at that point in time. See [Configuring State Commitment](/docs/rpc#configuring-state-commitment)."
+              },
+              "minContextSlot": {
+                "type": "number",
+                "description": "The minimum slot that the request can be evaluated at"
+              }
+            },
+            "required": []
+          },
+          "required": false
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "The current Transaction count from the ledger",
+        "schema": {
+          "$ref": "#/components/schemas/u64"
+        }
+      }
+    },
+    {
+      "name": "getVersion",
+      "description": "Returns the current Solana version running on the node",
+      "params": [],
+      "result": {
+        "name": "result",
+        "description": "A JSON object containing:",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "solana-core": {
+              "type": "string",
+              "description": "Software version of solana-core"
+            },
+            "feature-set": {
+              "$ref": "#/components/schemas/u32",
+              "description": "Unique identifier of the current software's feature set"
+            }
+          },
+          "required": [
+            "solana-core",
+            "feature-set"
+          ]
+        }
+      }
+    },
+    {
+      "name": "getVoteAccounts",
+      "description": "Returns the account info and associated stake for all the voting accounts in the current bank.",
+      "params": [
+        {
+          "name": "0",
+          "description": "Configuration object containing the following fields:",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "commitment": {
+                "type": "string",
+                "description": "The commitment describes how finalized a block is at that point in time. See [Configuring State Commitment](/docs/rpc#configuring-state-commitment)."
+              },
+              "votePubkey": {
+                "type": "string",
+                "description": "Only return results for this validator vote address (base-58 encoded)"
+              },
+              "keepUnstakedDelinquents": {
+                "type": "boolean",
+                "description": "Do not filter out delinquent validators with no stake"
+              },
+              "delinquentSlotDistance": {
+                "$ref": "#/components/schemas/u64",
+                "description": "Specify the number of slots behind the tip that a validator must fall to be considered delinquent. **NOTE:** For the sake of consistency between ecosystem products, *it is **not** recommended that this argument be specified.*"
+              }
+            },
+            "required": []
+          },
+          "required": false
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "The result field will be a JSON object of `current` and `delinquent` accounts, each containing an array of JSON objects with the following sub fields:",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "activatedStake": {
+              "$ref": "#/components/schemas/u64",
+              "description": "The stake, in lamports, delegated to this vote account and active in this epoch"
+            },
+            "commission": {
+              "type": "number",
+              "description": "Percentage (0-100) of rewards payout owed to the vote account"
+            },
+            "epochCredits": {
+              "type": "array",
+              "description": "Latest history of earned credits for up to five epochs, as an array of arrays containing: `[epoch, credits, previousCredits]`"
+            },
+            "epochVoteAccount": {
+              "type": "boolean",
+              "description": "Whether the vote account is staked for this epoch"
+            },
+            "lastVote": {
+              "$ref": "#/components/schemas/u64",
+              "description": "Most recent slot voted on by this vote account"
+            },
+            "nodePubkey": {
+              "type": "string",
+              "description": "Validator identity, as base-58 encoded string"
+            },
+            "rootSlot": {
+              "$ref": "#/components/schemas/u64",
+              "description": "Current root slot for this vote account"
+            },
+            "votePubkey": {
+              "type": "string",
+              "description": "Vote account address, as base-58 encoded string"
+            }
+          },
+          "required": [
+            "activatedStake",
+            "commission",
+            "epochCredits",
+            "epochVoteAccount",
+            "lastVote",
+            "nodePubkey",
+            "rootSlot",
+            "votePubkey"
+          ]
+        }
+      }
+    },
+    {
+      "name": "isBlockhashValid",
+      "description": "Returns whether a blockhash is still valid or not",
+      "params": [
+        {
+          "name": "blockhash",
+          "description": "The blockhash of the block to evaluate, as base-58 encoded string",
+          "schema": {
+            "type": "string"
+          },
+          "required": true
+        },
+        {
+          "name": "config",
+          "description": "Configuration object containing the following fields:",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "commitment": {
+                "type": "string",
+                "description": "The commitment describes how finalized a block is at that point in time. See [Configuring State Commitment](/docs/rpc#configuring-state-commitment)."
+              },
+              "minContextSlot": {
+                "type": "number",
+                "description": "The minimum slot that the request can be evaluated at"
+              }
+            },
+            "required": []
+          },
+          "required": false
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "Whether the blockhash is still valid",
+        "schema": {
+          "type": "boolean"
+        }
+      }
+    },
+    {
+      "name": "minimumLedgerSlot",
+      "description": "Returns the lowest slot that the node has information about in its ledger.",
+      "params": [],
+      "result": {
+        "name": "result",
+        "description": "The minimum ledger slot number",
+        "schema": {
+          "$ref": "#/components/schemas/u64"
+        }
+      }
+    },
+    {
+      "name": "requestAirdrop",
+      "description": "Requests an airdrop of lamports to a Pubkey",
+      "params": [
+        {
+          "name": "pubkey",
+          "description": "Pubkey of account to receive lamports, as a base-58 encoded string",
+          "schema": {
+            "type": "string"
+          },
+          "required": true
+        },
+        {
+          "name": "lamports",
+          "description": "Amount of lamports to airdrop",
+          "schema": {
+            "$ref": "#/components/schemas/u64"
+          },
+          "required": true
+        },
+        {
+          "name": "config",
+          "description": "Configuration object containing the following fields:",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "commitment": {
+                "type": "string",
+                "description": "The commitment describes how finalized a block is at that point in time. See [Configuring State Commitment](/docs/rpc#configuring-state-commitment)."
+              }
+            },
+            "required": []
+          },
+          "required": false
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "Transaction Signature of the airdrop, as a base-58 encoded string",
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "sendTransaction",
+      "description": "Submits a signed transaction to the cluster for processing.\n\nThis method does not alter the transaction in any way; it relays the transaction created by clients to the node as-is.\n\nIf the node's rpc service receives the transaction, this method immediately succeeds, without waiting for any confirmations. A successful response from this method does not guarantee the transaction is processed or confirmed by the cluster.\n\nWhile the rpc service will reasonably retry to submit it, the transaction could be rejected if transaction's `recent_blockhash` expires before it lands.\n\nUse [`getSignatureStatuses`](/docs/rpc/http/getsignaturestatuses) to ensure a transaction is processed and confirmed.\n\nBefore submitting, the following preflight checks are performed:\n\n1. The transaction signatures are verified\n2. The transaction is simulated against the bank slot specified by the preflight commitment. On failure an error will be returned. Preflight checks may be disabled if desired. It is recommended to specify the same commitment and preflight commitment to avoid confusing behavior.\n\nThe returned signature is the first signature in the transaction, which is used to identify the transaction ([transaction id](/docs/references/terminology#transaction-id)). This identifier can be easily extracted from the transaction data before submission.",
+      "params": [
+        {
+          "name": "transaction",
+          "description": "Fully-signed Transaction, as encoded string.",
+          "schema": {
+            "type": "string"
+          },
+          "required": true
+        },
+        {
+          "name": "config",
+          "description": "Configuration object containing the following fields:",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "encoding": {
+                "type": "string",
+                "enum": [
+                  "base58",
+                  "base64"
+                ],
+                "default": "base58",
+                "description": "Encoding used for the transaction data. Values: `base58` (*slow*, **DEPRECATED**), or `base64`."
+              },
+              "skipPreflight": {
+                "type": "boolean",
+                "description": "When `true`, skip the preflight transaction checks. Default: `false`."
+              },
+              "preflightCommitment": {
+                "type": "string",
+                "description": "Commitment level to use for preflight. See [Configuring State Commitment](/docs/rpc#configuring-state-commitment). Default `finalized`."
+              },
+              "maxRetries": {
+                "$ref": "#/components/schemas/usize",
+                "description": "Maximum number of times for the RPC node to retry sending the transaction to the leader. If this parameter not provided, the RPC node will retry the transaction until it is finalized or until the blockhash expires."
+              },
+              "minContextSlot": {
+                "type": "number",
+                "description": "Set the minimum slot at which to perform preflight transaction checks"
+              }
+            },
+            "required": []
+          },
+          "required": false
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "First Transaction Signature embedded in the transaction, as base-58 encoded string ([transaction id](/docs/references/terminology#transaction-id))",
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "simulateTransaction",
+      "description": "Simulate sending a transaction",
+      "params": [
+        {
+          "name": "transaction",
+          "description": "Transaction, as an encoded string.",
+          "schema": {
+            "type": "string"
+          },
+          "required": true
+        },
+        {
+          "name": "config",
+          "description": "Configuration object containing the following fields:",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "commitment": {
+                "type": "string",
+                "description": "Commitment level to simulate the transaction at. See [Configuring State Commitment](/docs/rpc#configuring-state-commitment). Default `finalized`."
+              },
+              "encoding": {
+                "type": "string",
+                "enum": [
+                  "base58",
+                  "base64"
+                ],
+                "default": "base58",
+                "description": "Encoding used for the transaction data. Values: `base58` (*slow*, **DEPRECATED**), or `base64`."
+              },
+              "replaceRecentBlockhash": {
+                "type": "boolean",
+                "description": "If `true` the transaction recent blockhash will be replaced with the most recent blockhash (conflicts with `sigVerify`)"
+              },
+              "sigVerify": {
+                "type": "boolean",
+                "description": "If `true` the transaction signatures will be verified (conflicts with `replaceRecentBlockhash`)"
+              },
+              "minContextSlot": {
+                "type": "number",
+                "description": "The minimum slot that the request can be evaluated at"
+              },
+              "innerInstructions": {
+                "type": "boolean",
+                "description": "If `true` the response will include [inner instructions](/docs/rpc/json-structures#inner-instructions). These inner instructions will be `jsonParsed` where possible, otherwise `json`."
+              },
+              "accounts": {
+                "type": "object",
+                "description": "Accounts configuration object containing the following fields:\n\n* `addresses`: An array of accounts to return, as base-58 encoded strings\n* `encoding`: Encoding for returned Account data. Note: `jsonParsed` encoding attempts to use program-specific state parsers to return more human-readable and explicit account state data. If `jsonParsed` is requested but a [parser cannot be found](https://github.com/solana-labs/solana/blob/cfd0a00ae2ba85a6d76757df8b4fa38ed242d185/account-decoder/src/parse_account_data.rs#L98-L100), the field falls back to `base64` encoding, detectable when the returned `accounts.data` field is type `string`."
+              }
+            },
+            "required": []
+          },
+          "required": false
+        }
+      ],
+      "result": {
+        "name": "result",
+        "description": "The result will contain:",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "accounts": {
+              "type": "array",
+              "description": "Array of accounts with the same length as the `accounts.addresses` array in the request. Each element is either:\n\n* `null` - if the account doesn't exist or if `err` is not null\n\n* An object containing:\n\n  * `lamports: <u64>` - number of lamports assigned to this account\n  * `owner: <string>` - base-58 encoded Pubkey of the program this account has been assigned to\n  * `data: <[string, encoding]|object>` - data associated with the account, either as encoded binary data or JSON format `{<program>: <state>}`\n  * `executable: <bool>` - boolean indicating if the account contains a program\n  * `rentEpoch: <u64>` - the epoch at which this account will next owe rent"
+            },
+            "err": {
+              "$ref": "#/components/schemas/object|string",
+              "description": "Error if transaction failed, null if transaction succeeded. See [TransactionError definitions](https://github.com/solana-labs/solana/blob/c0c60386544ec9a9ec7119229f37386d9f070523/sdk/src/transaction/error.rs#L13)"
+            },
+            "innerInstructions": {
+              "$ref": "#/components/schemas/object|undefined",
+              "description": "Defined only if `innerInstructions` was set to `true`. The value is a list of [inner instructions](/docs/rpc/json-structures#inner-instructions)."
+            },
+            "loadedAccountsDataSize": {
+              "$ref": "#/components/schemas/u32|undefined",
+              "description": "The number of bytes of all accounts loaded by this transaction"
+            },
+            "logs": {
+              "type": "array",
+              "description": "Array of log messages the transaction instructions output during execution, null if simulation failed before the transaction was able to execute"
+            },
+            "replacementBlockhash": {
+              "type": "object",
+              "description": "The blockhash used to simulate the transaction, containing:\n\n* `blockhash: <string>` - the blockhash used to simulate the transaction\n* `lastValidBlockHeight: <u64>` - the last valid block height at which the blockhash is valid"
+            },
+            "returnData": {
+              "type": "object",
+              "description": "The most-recent return data generated by an instruction in the transaction, containing:\n\n* `programId: <string>` - the program that generated the return data, as base-58 encoded Pubkey\n* `data: <[string, encoding]>` - the return data itself, as base-64 encoded binary data"
+            },
+            "unitsConsumed": {
+              "$ref": "#/components/schemas/u64|undefined",
+              "description": "The number of compute budget units consumed during the processing of this transaction"
+            }
+          },
+          "required": [
+            "innerInstructions",
+            "loadedAccountsDataSize",
+            "unitsConsumed"
+          ]
+        }
+      }
+    }
+  ],
+  "components": {
+    "schemas": {
+      "u64": {
+        "type": "integer"
+      },
+      "i64": {
+        "type": "integer"
+      }
+    }
+  }
+}
