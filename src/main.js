@@ -19,17 +19,14 @@ async function parseDoc(filePath) {
     });
   }
 
-  let resultSchema;
-  if ("blocks" in mdx.data.result[0].blocks) {
-    resultSchema = parseObjectProperties(mdx.data.result[0].blocks, true);
-  } else {
-    // TODO
-    // resultSchema = parseType(mdx.data.result[0].blocks)[1]
-  }
+  const resultBlock = mdx.data.result[0];
   const result = {
     name: "result",
-    description: reactToText(mdx.data.result[0].children) || undefined,
-    schema: resultSchema,
+    description: reactToText(resultBlock.children) || undefined,
+    schema: {
+      ...parseType(resultBlock.type).obj,
+      ...parseObjectProperties(resultBlock.blocks, true),
+    },
   };
 
   return {

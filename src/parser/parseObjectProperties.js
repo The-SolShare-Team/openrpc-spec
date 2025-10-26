@@ -39,7 +39,7 @@ export function parseObjectProperties(blocks, requiredByDefault) {
     // Update properties object and required array
     properties[block.title] = property.obj;
 
-    const isRequired = requiredByDefault ? property.nullable : block.required;
+    const isRequired = requiredByDefault ? !property.nullable : block.required;
     if (isRequired) required.push(block.title);
   });
 
